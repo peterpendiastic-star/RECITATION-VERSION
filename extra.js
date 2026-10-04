@@ -266,13 +266,13 @@ function savePlanSettings(){
   P.n=Math.max(1,g('pn'));P.k=Math.max(1,g('pk'));P.m=g('pm');P.start=Math.min(548,Math.max(1,g('ps')));P.dir=parseInt($('#pr').value)||1;
   P.manFrom=Math.min(548,Math.max(1,g('mf')));P.manTo=Math.min(548,Math.max(1,g('mt')));P.manDir=parseInt($('#md').value)||1;
   if(P.manFrom>P.manTo)[P.manFrom,P.manTo]=[P.manTo,P.manFrom];
-  P.day=null;H.save();planUI();$('#planMsg').textContent='Plan settings saved. Today’s assignment has been updated.';
+  P.day=null;planUI();H.save();$('#planMsg').textContent='Plan settings saved. Today’s assignment has been updated.';
 }
 pd.onclick=e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.x!==undefined)return pd.close();
   if(b.dataset.progress){pd.close();return openProgress()}
   if(b.dataset.saveSettings!==undefined){savePlanSettings();return}
-  if(b.dataset.resetPlan!==undefined){const P=plan();P.day=null;H.save();planUI();$('#planMsg').textContent='Today’s plan was regenerated from your saved settings.';return}
+  if(b.dataset.resetPlan!==undefined){const P=plan();P.day=null;planUI();H.save();$('#planMsg').textContent='Today’s plan was regenerated from your saved settings.';return}
   if(b.dataset.p){pd.close();return H.go(+b.dataset.p)}
   if(b.dataset.d){
     const P=plan(),k=b.dataset.d,D=P.day;D.completed=D.completed||{};D.assigned=D.assigned||{s:[...D.sab],q:[...D.rec],m:[...D.man]};
@@ -289,6 +289,8 @@ function openProgress(){
   if(!progDlg){progDlg=E('dialog');progDlg.id='progressDlg';document.body.appendChild(progDlg);progDlg.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.x!==undefined)progDlg.close();if(b.dataset.go)H.go(+b.dataset.go);if(b.dataset.clear){delete H.S.done[b.dataset.clear];H.save();renderProgress()}}}
   renderProgress();progDlg.showModal();
 }
+window.openHifzPlan=()=>{planUI();pd.showModal()};
+window.openHifzProgress=()=>openProgress();
 function renderProgress(){
   const d=H.S.done||{},pages=Object.keys(d).map(Number).sort((a,b)=>a-b),today=loc(),recent=pages.filter(p=>d[p]===today).length,pct=Math.round(pages.length/548*100);
   const P=H.S.plan||planDefaults,hist=Object.values(P.history||{}).sort((a,b)=>String(b.d).localeCompare(String(a.d))),days=hist.length;
@@ -337,7 +339,6 @@ $('#ap').onclick=()=>{
 /* ---------- header buttons ---------- */
 const bar=$('.ctl');
 [['mean','Meanings'],['aub','Audio'],['sim','Mutashabihat'],['two','Two pages']].forEach(([id,t])=>{const b=E('button',t);b.id=id;bar.appendChild(b)});
-$('#plan').onclick=()=>{planUI();pd.showModal()};
 $('#aub').onclick=()=>{const on=$('#aud').classList.toggle('on');$('#aub').setAttribute('aria-pressed',on);if(!on&&playing)stop();dispatchEvent(new Event('resize'))};
 H.S.sim=true;H.save();$('#sim').setAttribute('aria-pressed',true);
 $('#sim').onclick=()=>{openCurrentMutashabihat()};
@@ -359,6 +360,7 @@ function setRub(j){
   V&&hook();
 }
 try{fetch('data/rub.json').then(r=>r.ok?r.json():0).then(j=>j&&setRub(j)).catch(()=>{})}catch(x){}
+function add(w,t){const m=E('span',t);m.className='mk';w.appendChild(m)}
 function marks(){
   Q('.mk').forEach(m=>m.remove());
   // One Rub/nisf/salasa marker per ayah. Attach it to the Mushaf line,
@@ -536,8 +538,8 @@ if(H.D)hook();
   const openRecitation=()=>{const d=recEnsure();d.showModal();recPrepare($('#recSource')?.value||'page')};
   const addToolbarButtons=()=>{const bar=document.querySelector('.ctl');if(!bar)return;let tools=$('#toolsBtn');let menu=$('#toolsMenu');if(!tools){tools=document.createElement('button');tools.id='toolsBtn';tools.textContent='Tools';tools.setAttribute('aria-expanded','false');bar.appendChild(tools);menu=document.createElement('div');menu.id='toolsMenu';menu.className='tools-menu';document.body.appendChild(menu);tools.onclick=e=>{e.stopPropagation();const on=menu.classList.toggle('on');tools.setAttribute('aria-expanded',String(on))};document.addEventListener('click',e=>{if(!e.target.closest('#toolsMenu,#toolsBtn')){menu.classList.remove('on');tools.setAttribute('aria-expanded','false')}})}
     const add=(id,label,fn)=>{if($('#'+id))return;const b=document.createElement('button');b.id=id;b.textContent=label;b.onclick=()=>{menu.classList.remove('on');tools.setAttribute('aria-expanded','false');fn()};menu.appendChild(b)};
-    add('mark-bookmark','Bookmark',()=>activateMode('bookmark'));add('mark-notes','Notes',()=>activateMode('notes'));add('mark-theme','Theme',()=>activateMode('theme'));add('mark-recite','Recite',openRecitation);add('myMarks','My Marks',()=>openMarks('bookmarks'));add('progress','Progress',openProgress);add('qsearch','Search',()=>{ensureSearchDialog();$('#sq').value='';$('#sstatus').textContent='';$('#sresults').innerHTML='';$('#searchDlg').showModal();setTimeout(()=>$('#sq').focus(),0)});add('full','Full page',toggleFull);
-    if(!$('#planTool'))add('planTool','Plan',()=>{planUI();pd.showModal()});
+    add('mark-bookmark','Bookmark',()=>activateMode('bookmark'));add('mark-notes','Notes',()=>activateMode('notes'));add('mark-theme','Theme',()=>activateMode('theme'));add('mark-recite','Recite',openRecitation);add('myMarks','My Marks',()=>openMarks('bookmarks'));add('progress','Progress',()=>window.openHifzProgress());add('qsearch','Search',()=>{ensureSearchDialog();$('#sq').value='';$('#sstatus').textContent='';$('#sresults').innerHTML='';$('#searchDlg').showModal();setTimeout(()=>$('#sq').focus(),0)});add('full','Full page',toggleFull);
+    if(!$('#planTool'))add('planTool','Plan',()=>window.openHifzPlan());
   };
   const ensureFullMeta=()=>{let m=$('#fullMeta');if(!m){m=document.createElement('div');m.id='fullMeta';m.className='full-meta';document.body.appendChild(m)}const p=H.page||1;let si=0;H.D.surahPage.forEach((sp,i)=>{if(sp<=p)si=i});let ji=0;H.D.juzPage.forEach((jp,i)=>{if(jp<=p)ji=i});let first=null;const pg=H.D.pages[p-1]||[];for(const l of pg){if(l[0]===0&&l[3]){first=l[3].split(':').map(Number);break}}let ruku='';if(first&&window.R){const [s,a]=first;let bestA=0,bestN='';Object.keys(window.R).forEach(k=>{const [rs,ra]=k.split(':').map(Number);if(rs===s&&ra<=a&&ra>=bestA){bestA=ra;bestN=window.R[k]}});if(bestN)ruku='Ruku '+bestN}m.innerHTML=`<b>Juz ${ji+1}</b><span class="sep">·</span><b>${esc(H.D.surahs[si]||'')}</b><span class="sep">·</span>Page ${p}<span class="sep">·</span>${ruku||'Ruku —'}`;m.style.display=H.S.full?'flex':'none';return m};
   const ensureFullExit=()=>{let b=$('#fullExit');if(!b){b=document.createElement('button');b.id='fullExit';b.className='full-exit';b.type='button';b.setAttribute('aria-label','Exit full page');b.title='Exit full page';b.innerHTML='<span aria-hidden="true">×</span>';b.onclick=()=>setFull(false);document.body.appendChild(b)}b.style.display=S().full?'flex':'none';return b};
